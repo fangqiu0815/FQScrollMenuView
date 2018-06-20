@@ -31,7 +31,7 @@
     
     FQScrollMenuItem *item = [self appearance];
     item.iconSize = CGSizeMake(kScale(40), kScale(40));
-    item.iconCornerRadius = kScale(20);
+    item.iconCornerRadius = kScale(0);
     item.space = kScale(10);
     item.textColor = [UIColor darkTextColor];
     item.textFont = [UIFont systemFontOfSize:kScale(14)];
@@ -185,6 +185,9 @@
 
 @interface FQScrollMenu()
 <UICollectionViewDelegate,UICollectionViewDataSource>
+{
+    CGFloat _menuHeight;
+}
 /**
  *  视图
  */
@@ -246,10 +249,9 @@
 - (instancetype)initWithFrame:(CGRect)frame  scrollMenuDelegate:(nonnull id)aDelegate
 {
     if (self = [super initWithFrame:frame]) {
-        
+        _menuHeight = frame.size.height;
         self.delegate = aDelegate;
         self.dataSource = aDelegate;
-        
         self.originFrame = frame;
         
         [self prepareUI];
@@ -272,43 +274,7 @@
 {
     
     self.backgroundColor = [UIColor whiteColor];
-    
     self.clipsToBounds = YES;
-    
-    self.collectionView = ({
-        
-        UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:self.flowLayout];
-        collectionView.backgroundColor = [UIColor whiteColor];
-        collectionView.showsVerticalScrollIndicator = NO;
-        collectionView.showsHorizontalScrollIndicator = NO;
-        collectionView.pagingEnabled = YES;
-        
-        [collectionView registerClass:[FQScrollMenuItem class] forCellWithReuseIdentifier:[FQScrollMenuItem identifier]];
-        
-        collectionView.delegate = self;
-        collectionView.dataSource = self;
-        
-        collectionView;
-        
-    });
-    
-    self.pageControl = ({
-        UIPageControl * pageControl = [[UIPageControl alloc] initWithFrame:CGRectZero];
-        pageControl.currentPageIndicatorTintColor = [UIColor darkTextColor];
-        pageControl.pageIndicatorTintColor =  [UIColor groupTableViewBackgroundColor];
-        pageControl.numberOfPages = self.totalPages;
-        pageControl.currentPage = 0;
-        [pageControl addTarget:self action:@selector(pageTurn:) forControlEvents:UIControlEventValueChanged];
-        pageControl;
-    });
-    
-    self.header = ({
-        UIView *header = [[UIView alloc] init];
-        header.backgroundColor = [UIColor whiteColor];
-        header.clipsToBounds = YES;
-        header;
-    });
-    
     [self addSubview:self.collectionView];
     [self addSubview:self.pageControl];
     [self addSubview:self.header];
@@ -316,6 +282,47 @@
     [self layoutHeaderInSection:0];
     
 }
+
+- (UICollectionView *)collectionView
+{
+    if (!_collectionView) {
+        _collectionView = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:self.flowLayout];
+        _collectionView.backgroundColor = [UIColor whiteColor];
+        _collectionView.showsVerticalScrollIndicator = NO;
+        _collectionView.showsHorizontalScrollIndicator = NO;
+        _collectionView.pagingEnabled = YES;
+        
+        [_collectionView registerClass:[FQScrollMenuItem class] forCellWithReuseIdentifier:[FQScrollMenuItem identifier]];
+        
+        _collectionView.delegate = self;
+        _collectionView.dataSource = self;
+        
+    }
+    return _collectionView;
+}
+
+- (UIView *)header
+{
+    if (!_header) {
+        _header = [[UIView alloc]init];
+        _header.backgroundColor = [UIColor whiteColor];
+        _header.clipsToBounds = YES;
+    }
+    return _header;
+}
+
+- (UIPageControl *)pageControl
+{
+    if (!_pageControl) {
+        _pageControl = [[UIPageControl alloc] initWithFrame:CGRectZero];
+        _pageControl.currentPageIndicatorTintColor = [UIColor darkTextColor];
+        _pageControl.pageIndicatorTintColor =  [UIColor groupTableViewBackgroundColor];
+        _pageControl.currentPage = 0;
+        [_pageControl addTarget:self action:@selector(pageTurn:) forControlEvents:UIControlEventValueChanged];
+    }
+    return _pageControl;
+}
+
 
 - (void)layoutSubviews{
     
@@ -386,28 +393,23 @@
     
 }
 - (void)setCurrentPageIndicatorTintColor:(UIColor *)currentPageIndicatorTintColor{
-    
     _currentPageIndicatorTintColor = currentPageIndicatorTintColor;
-    
     if (self.pageControl) {
-        
         self.pageControl.currentPageIndicatorTintColor = currentPageIndicatorTintColor;
     }
 }
+
 - (void)setPageIndicatorTintColor:(UIColor *)pageIndicatorTintColor{
-    
     _pageIndicatorTintColor = pageIndicatorTintColor;
-    
     if (self.pageControl) {
-        
         self.pageControl.pageIndicatorTintColor = pageIndicatorTintColor;
     }
 }
+
 /** 页眉高度 */
 - (CGFloat)headerHeight{
     
     if (self.delegate && [self.delegate respondsToSelector:@selector(heightOfHeaderInScrollMenu:)]) {
-        
         return [self.delegate heightOfHeaderInScrollMenu:self];
     }
     
@@ -417,7 +419,6 @@
 - (CGFloat)pageControlHeight{
     
     if (self.delegate && [self.delegate respondsToSelector:@selector(heightOfPageControlInScrollMenu:)]) {
-        
         return [self.delegate heightOfPageControlInScrollMenu:self];
     }
     
@@ -427,11 +428,8 @@
 - (CGSize)itemSize{
     
     if (self.delegate && [self.delegate respondsToSelector:@selector(itemSizeOfScrollMenu:)]) {
-        
         return  [self.delegate itemSizeOfScrollMenu:self];
-        
     }
-    
     return CGSizeMake(kScale(40), kScale(70));
     
 }
@@ -440,7 +438,7 @@
     
     //视图尺寸
     CGFloat width = self.frame.size.width;
-    CGFloat height = self.frame.size.height - self.pageControlHeight - self.headerHeight;
+    CGFloat height = _menuHeight - self.pageControlHeight - self.headerHeight;
     //行列最大的单元格数量
     NSInteger xCount = width/self.itemSize.width;
     NSInteger yCount = height/self.itemSize.height;
@@ -549,7 +547,6 @@
     CGPoint offset = scrollView.contentOffset;
     CGRect bounds = scrollView.frame;
     [self.pageControl setCurrentPage:offset.x / bounds.size.width];
-    
     
     [self changeHeaderInMenuContentOffset:offset.x];
     
